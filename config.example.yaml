@@ -1,0 +1,14 @@
+# Example configuration for posse_project_eval.py
+# Copy to config.yaml (the default path) or pass with -c/--config.
+
+# Languages you'd prefer to work in. The Technology criterion scores 2 when one
+# of these appears among the repo's top languages. Leave empty/omit to accept
+# any open source language.
+preferred_languages:
+  - Python
+  - TypeScript
+  - JavaScript
+
+# Estimated lines-of-code at or above which Product Size scores 2.
+# Defaults to 10000 when omitted.
+loc_threshold: 10000
