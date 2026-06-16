@@ -64,6 +64,12 @@ loc_threshold: 10000
 - `preferred_languages` — Technology scores 2 when one of these is a top  language; omit to accept any open source language.
 - `loc_threshold` — estimated lines of code at or above which Product Size scores 2 (default: 10000).
 
+## License
+
+The code and configuration files in this repository are licensed under the **MIT License**. See [LICENSE](LICENSE).
+
+The [FOSS Project Health Evaluation Rubric](./Project_Evaluation_Rubric.pdf) and guided example are copyright of Gregory W. Hislop and TeachingOpenSource.org, licensed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).
+
 ## Example output
 
 ```
