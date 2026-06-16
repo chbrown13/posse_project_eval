@@ -1,4 +1,4 @@
-# posse_project_eval
+# POSSE Project Evaluator
 
 A command-line tool that scores the health of a GitHub project against the [FOSS Project Health Evaluation Rubric](Project_Evaluation_Rubric.pdf) from the [Professors' Open Source Software Experience](https://teachingopensource.org/POSSE_2026-06) (POSSE) workshop. This is meant to be a quick first pass for instructors deciding whether an open-source project is a good one to have students contribute to in their course.
 
@@ -64,13 +64,7 @@ loc_threshold: 10000
 - `preferred_languages` — Technology scores 2 when one of these is a top  language; omit to accept any open source language.
 - `loc_threshold` — estimated lines of code at or above which Product Size scores 2 (default: 10000).
 
-## License
-
-The code and configuration files in this repository are licensed under the **MIT License**. See [LICENSE](LICENSE).
-
-The [FOSS Project Health Evaluation Rubric](./Project_Evaluation_Rubric.pdf) and guided example are copyright of Gregory W. Hislop and TeachingOpenSource.org, licensed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).
-
-## Example output
+## Example Output
 
 ```
 ================================================================================
@@ -86,3 +80,8 @@ Licensing — Level 2/2
 ...
 Total Score: 16/18
 ```
+## License
+
+The code and configuration files in this repository are licensed under the **MIT License**. See [LICENSE](LICENSE).
+
+The [FOSS Project Health Evaluation Rubric](./Project_Evaluation_Rubric.pdf) and guided example are copyright of Gregory W. Hislop and TeachingOpenSource.org, licensed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).
