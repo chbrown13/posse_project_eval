@@ -10,15 +10,16 @@ from pathlib import Path
 import yaml
 
 
-# Scoring thresholds (kept here so the tool is easy to tune).
-CONTRIBUTOR_HIGH = 10        # >= this many contributors scores 2
-CONTRIBUTOR_LOW = 3          # >= this many (but below HIGH) scores 1
-USER_BASE_STARS = 50         # stars + forks needed for a "2" on User Base
-USER_BASE_FORKS = 10
-ISSUE_RECENT_DAYS = 180      # an issue updated within this window counts as recent
-DEFAULT_LOC_THRESHOLD = 10000
-BYTES_PER_LINE = 40          # rough avg bytes per source line for LOC estimates
-WEEKS_PER_QUARTER = 13
+@dataclass
+class ThresholdConfig:
+    contributor_high: int = 10
+    contributor_low: int = 3
+    user_base_stars: int = 50
+    user_base_forks: int = 10
+    issue_recent_days: int = 60
+    loc_threshold: int = 10000
+    bytes_per_line: int = 40
+    weeks_per_quarter: int = 13
 
 
 def _band_score(value: int, high: int, low: int) -> int:
@@ -107,19 +108,18 @@ def eval_technology(repo, preferred_languages: list[str]) -> CriterionResult:
                            "Top languages do not match preferred technologies")
 
 
-def eval_activity(repo) -> CriterionResult:
+def eval_activity(repo, thresholds: ThresholdConfig) -> CriterionResult:
     stats = repo.get_stats_commit_activity()
     if not stats:
         return CriterionResult("Level of Activity", 0, "No commit data",
                                f"{repo.html_url}/commits?from=&to=&",
                                "Cannot determine activity levels")
-    # get_stats_commit_activity returns up to 52 weekly entries (oldest first).
-    # Take the most recent 52 weeks and split into 4 quarters of 13 weeks each.
-    # A quarter is "active" if a majority of its weeks have at least one commit.
-    weeks = sorted(stats, key=lambda s: s.week)[-52:]
+    wpq = thresholds.weeks_per_quarter
+    total_weeks = 4 * wpq
+    weeks = sorted(stats, key=lambda s: s.week)[-total_weeks:]
     active_quarters = 0
-    for i in range(0, len(weeks), 13):
-        quarter = weeks[i:i + 13]
+    for i in range(0, len(weeks), wpq):
+        quarter = weeks[i:i + wpq]
         if not quarter:
             continue
         active_weeks = sum(1 for w in quarter if w.total > 0)
@@ -131,9 +131,9 @@ def eval_activity(repo) -> CriterionResult:
                            "Project is actively maintained" if score >= 1 else "No recent activity")
 
 
-def eval_contributors(repo) -> CriterionResult:
+def eval_contributors(repo, thresholds: ThresholdConfig) -> CriterionResult:
     count = repo.get_contributors().totalCount
-    score = _band_score(count, CONTRIBUTOR_HIGH, CONTRIBUTOR_LOW)
+    score = _band_score(count, thresholds.contributor_high, thresholds.contributor_low)
     reason = _pick(score, "Healthy contributor community",
                    "Moderate contributor base", "Very few contributors")
     return CriterionResult("Number of Contributors", score, f"{count} contributors",
@@ -141,24 +141,20 @@ def eval_contributors(repo) -> CriterionResult:
                            reason)
 
 
-def eval_product_size(repo, loc_threshold: int) -> CriterionResult:
+def eval_product_size(repo, thresholds: ThresholdConfig) -> CriterionResult:
     languages = repo.get_languages()
     total_bytes = sum(languages.values())
-    # Rough heuristic: source lines average ~BYTES_PER_LINE bytes once
-    # whitespace and punctuation are included.
-    est_loc = round(total_bytes / BYTES_PER_LINE)
+    est_loc = round(total_bytes / thresholds.bytes_per_line)
     if est_loc == 0:
         return CriterionResult("Product Size", 0, "~0 LOC",
                                repo.html_url, "Project has no meaningful code base")
-    score = 2 if est_loc >= loc_threshold else 1
-    return CriterionResult("Product Size", score, f"~{est_loc:,} LOC (threshold: {loc_threshold})",
+    score = 2 if est_loc >= thresholds.loc_threshold else 1
+    return CriterionResult("Product Size", score, f"~{est_loc:,} LOC (threshold: {thresholds.loc_threshold})",
                            f"{repo.html_url}/search?q=language%3A*",
                            f"Substantial codebase ({est_loc:,} LOC)" if score == 2 else "Smaller codebase but still meaningful")
 
 
-def eval_issue_tracker(repo) -> CriterionResult:
-    # PaginatedList.totalCount and list[0] each cost a single request, so we
-    # never page through the whole (potentially huge) issue history.
+def eval_issue_tracker(repo, thresholds: ThresholdConfig) -> CriterionResult:
     open_issues = repo.get_issues(state="open", sort="updated", direction="desc")
     closed_issues = repo.get_issues(state="closed", sort="updated", direction="desc")
     open_count = open_issues.totalCount
@@ -167,7 +163,7 @@ def eval_issue_tracker(repo) -> CriterionResult:
     if total_count == 0:
         return CriterionResult("Issue Tracker", 0, "No issues found",
                                f"{repo.html_url}/issues", "No issue tracker activity")
-    cutoff = datetime.now(timezone.utc) - timedelta(days=ISSUE_RECENT_DAYS)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=thresholds.issue_recent_days)
     has_recent = any(lst.totalCount > 0 and lst[0].updated_at >= cutoff
                      for lst in (open_issues, closed_issues))
     score = 2 if has_recent and open_count > 0 else 1
@@ -213,11 +209,11 @@ def eval_community_norms(repo) -> CriterionResult:
                            else "No signs of poor behavior but no stated code of conduct")
 
 
-def eval_user_base(repo) -> CriterionResult:
+def eval_user_base(repo, thresholds: ThresholdConfig) -> CriterionResult:
     stars = repo.stargazers_count
     forks = repo.forks_count
     release_count = repo.get_releases().totalCount
-    if (stars >= USER_BASE_STARS and forks >= USER_BASE_FORKS) or release_count > 0:
+    if (stars >= thresholds.user_base_stars and forks >= thresholds.user_base_forks) or release_count > 0:
         score = 2
     elif stars > 0 or forks > 0:
         score = 1
@@ -230,7 +226,7 @@ def eval_user_base(repo) -> CriterionResult:
                                  "Little to no evidence of product use beyond development team"))
 
 
-def evaluate_project(repo, preferred_languages: list[str], loc_threshold: int) -> EvaluationResult:
+def evaluate_project(repo, preferred_languages: list[str], thresholds: ThresholdConfig) -> EvaluationResult:
     result = EvaluationResult(
         project_name=repo.name,
         repo_url=repo.html_url,
@@ -240,13 +236,13 @@ def evaluate_project(repo, preferred_languages: list[str], loc_threshold: int) -
     result.criteria = [
         eval_licensing(repo),
         eval_technology(repo, preferred_languages),
-        eval_activity(repo),
-        eval_contributors(repo),
-        eval_product_size(repo, loc_threshold),
-        eval_issue_tracker(repo),
+        eval_activity(repo, thresholds),
+        eval_contributors(repo, thresholds),
+        eval_product_size(repo, thresholds),
+        eval_issue_tracker(repo, thresholds),
         eval_new_contributor(repo),
         eval_community_norms(repo),
-        eval_user_base(repo),
+        eval_user_base(repo, thresholds),
     ]
     result.total_score = sum(c.score for c in result.criteria)
     return result
@@ -317,10 +313,17 @@ def main():
         parser.error('one of repo_url or --file must be provided')
 
     config = load_config(args.config)
-    preferred_languages = []
-    if config.get('preferred_languages'):
-        preferred_languages = config['preferred_languages']
-    loc_threshold = config.get('loc_threshold', DEFAULT_LOC_THRESHOLD)
+    preferred_languages = config.get('preferred_languages', [])
+    thresholds = ThresholdConfig(
+        contributor_high=config.get('contributor_high', ThresholdConfig.contributor_high),
+        contributor_low=config.get('contributor_low', ThresholdConfig.contributor_low),
+        user_base_stars=config.get('user_base_stars', ThresholdConfig.user_base_stars),
+        user_base_forks=config.get('user_base_forks', ThresholdConfig.user_base_forks),
+        issue_recent_days=config.get('issue_recent_days', ThresholdConfig.issue_recent_days),
+        loc_threshold=config.get('loc_threshold', ThresholdConfig.loc_threshold),
+        bytes_per_line=config.get('bytes_per_line', ThresholdConfig.bytes_per_line),
+        weeks_per_quarter=config.get('weeks_per_quarter', ThresholdConfig.weeks_per_quarter),
+    )
 
     token = os.getenv('GITHUB_TOKEN')
     if not token:
@@ -348,7 +351,7 @@ def main():
             print(f"   Check the URL, repository visibility, and GITHUB_TOKEN permissions.", file=sys.stderr)
             print(f"   GitHub API error: {exc.data if hasattr(exc, 'data') else exc}", file=sys.stderr)
             continue
-        result = evaluate_project(repo, preferred_languages, loc_threshold)
+        result = evaluate_project(repo, preferred_languages, thresholds)
         results.append(result)
         print(format_console(result))
 

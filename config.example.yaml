@@ -1,14 +1,32 @@
 # Example configuration for posse_project_eval.py
 # Copy to config.yaml (the default path) or pass with -c/--config.
+# All keys are optional — defaults from the POSSE rubric skill apply.
 
 # Languages you'd prefer to work in. The Technology criterion scores 2 when one
-# of these appears among the repo's top languages. Leave empty/omit to accept
-# any open source language.
+# of these appears among the repo's top languages. Omit to accept any language.
 preferred_languages:
   - Python
   - TypeScript
   - JavaScript
 
-# Estimated lines-of-code at or above which Product Size scores 2.
-# Defaults to 10000 when omitted.
+# Scoring thresholds (defaults from .ai/skills/posse-eval.md)
+
+# Number of Contributors: >= CONTRIBUTOR_HIGH → 2, >= CONTRIBUTOR_LOW → 1, else 0.
+contributor_high: 10
+contributor_low: 3
+
+# User Base: >= USER_BASE_STARS stars AND >= USER_BASE_FORKS forks → 2.
+user_base_stars: 50
+user_base_forks: 10
+
+# Issue Tracker: an issue updated within this many days counts as recent.
+issue_recent_days: 60
+
+# Product Size: estimated LOC at or above this → 2, else 1 (if > 0).
 loc_threshold: 10000
+
+# Bytes per source line for LOC estimation from language byte totals.
+bytes_per_line: 40
+
+# Weeks per quarter for Level of Activity calculation.
+weeks_per_quarter: 13
