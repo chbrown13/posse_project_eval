@@ -29,6 +29,8 @@ A token is required (the GitHub API rate-limits unauthenticated requests). A cla
 
 ## Usage
 
+### Script
+
 Evaluate a single repository:
 
 ```bash
@@ -41,7 +43,7 @@ Evaluate multiple repositories from a file and save the results as YAML:
 python posse_project_eval.py -f repos.txt -o results.yaml
 ```
 
-### Options
+#### Options
 
 | Flag | Description |
 |------|-------------|
@@ -50,7 +52,7 @@ python posse_project_eval.py -f repos.txt -o results.yaml
 | `-o`, `--output` | Write results to a file in YAML format |
 | `-c`, `--config` | Path to a config file (default: `./config.yaml`) |
 
-### Configuration
+#### Configuration
 
 Some scoring can be tuned with a YAML config file. See [`config.example.yaml`](config.example.yaml):
 
@@ -64,7 +66,7 @@ loc_threshold: 10000
 - `preferred_languages` — Technology scores 2 when one of these is a top  language; omit to accept any open source language.
 - `loc_threshold` — estimated lines of code at or above which Product Size scores 2 (default: 10000).
 
-## Example Output
+#### Example Output
 
 ```
 ================================================================================
@@ -80,8 +82,23 @@ Licensing — Level 2/2
 ...
 Total Score: 16/18
 ```
+
+### AI Agent & Skill
+
+This repository also includes AI-optimized files in the `.ai/` directory:
+
+- **`.ai/agents/project-evaluator.agent.md`** — Executable workflow for evaluating a GitHub project against the POSSE rubric. An AI coding assistant can run this agent to evaluate a repository conversationally, using the Python tool or manual web-fetch evaluation.
+
+- **`.ai/skills/posse-eval.md`** — This outlins the full POSSE FOSS Project Health Evaluation Rubric as a portable skill. Agents load this for rubric definitions, thresholds, and data sources when scoring.
+
+No additional setup required. An AI assistant should be able to access these files directly by loading the agent or skill and providing a GitHub repository in the prompt:
+
+```bash
+@project-evaluator evaluate https://github.com/OpenEnergyDashboard/OED
+```
+
 ## License
 
 The code and configuration files in this repository are licensed under the **MIT License**. See [LICENSE](LICENSE).
 
-The [FOSS Project Health Evaluation Rubric](./Project_Evaluation_Rubric.pdf) and guided example are copyright of Gregory W. Hislop and TeachingOpenSource.org, licensed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).
+The [FOSS Project Health Evaluation Rubric](./Project_Evaluation_Rubric.pdf) and guided example are copyright of Gregory W. Hislop and [TeachingOpenSource.org](https://teachingopensource.org/Main_Page), licensed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).
