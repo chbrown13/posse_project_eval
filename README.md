@@ -16,7 +16,7 @@ The tool inspects a repository through the PyGitHub API and scores nine criteria
 | Community Norms | Presence of a Code of Conduct |
 | User Base | Stars, forks, and releases |
 
-A guided example from the workshop for the [OpenEnergyDashboard](https://github.com/OpenEnergyDashboard/OED) repository is provided in [Guided_Example.docx](Guided_Example.docx)
+A guided example from the workshop for the [OpenEnergyDashboard](https://github.com/OpenEnergyDashboard/OED) repository is provided in [Guided_Example.docx](Guided_Example.docx). More details on the background and motivation for this tool can be found in [this blog post](https://code-world-no-blanket.github.io/blog/2026-06-22_posse_project_eval.html).
 
 ## Setup
 
